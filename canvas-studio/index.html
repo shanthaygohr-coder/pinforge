@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PinForge Studio — CTR-Optimized Pinterest Pins (Nano Banana)</title>
+<title>PinForge Studio — CTR-Optimized Pinterest Pins + Auto-Scheduler (Nano Banana)</title>
 <style>
   :root { --accent:#16A34A; }
   * { box-sizing: border-box; }
   body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#f1f5f9; color:#0f172a; }
   header { background:#fff; border-bottom:1px solid #e2e8f0; position:sticky; top:0; z-index:10; }
-  .wrap { max-width:1100px; margin:0 auto; padding:0 20px; }
+  .wrap { max-width:1180px; margin:0 auto; padding:0 20px; }
   .head { display:flex; align-items:center; gap:12px; padding:16px 0; }
   .logo { width:42px; height:42px; border-radius:12px; background:var(--accent); display:grid; place-items:center; color:#fff; font-size:22px; }
   h1 { font-size:20px; margin:0; font-weight:800; }
@@ -21,8 +21,8 @@
   .niche { border:2px solid #e2e8f0; border-radius:12px; padding:12px 14px; text-align:left; cursor:pointer; background:#fff; transition:.15s; }
   .niche:hover { border-color:#cbd5e1; }
   .niche.active { border-color:var(--accent); box-shadow:0 1px 4px rgba(0,0,0,.06); }
-  .niche b { display:block; color:#0f172a; }
-  .niche span { font-size:12px; color:#64748b; }
+  .niche b { display:block; color:#0f172a; font-size:14px; }
+  .niche span { font-size:11px; color:#64748b; }
   .row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
   input[type=text], input[type=password] { width:100%; border:1px solid #cbd5e1; border-radius:8px; padding:9px 12px; font-size:14px; }
   input:focus { outline:2px solid var(--accent); outline-offset:0; border-color:transparent; }
@@ -30,24 +30,29 @@
   .btn { display:inline-flex; align-items:center; gap:8px; border:none; border-radius:12px; padding:12px 22px; font-weight:700; color:#fff; background:var(--accent); cursor:pointer; font-size:15px; }
   .btn:disabled { opacity:.5; cursor:default; }
   .btn-ghost { background:#fff; color:#0f172a; border:1px solid #cbd5e1; border-radius:9px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+  .btn-ghost:disabled { opacity:.5; cursor:default; }
   .muted { color:#64748b; font-size:13px; }
   .err { margin-top:14px; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; border-radius:10px; padding:12px 14px; font-size:13px; }
+  .note { margin-top:12px; background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; border-radius:10px; padding:12px 14px; font-size:12px; }
   .strategy { margin-top:22px; }
   .strategy pre { white-space:pre-wrap; font-family:inherit; font-size:13px; color:#475569; margin:10px 0 0; }
-  .actions { margin-top:22px; display:flex; flex-wrap:wrap; gap:10px; }
+  .actions { margin-top:22px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
   .grid { margin-top:18px; display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
-  @media (max-width:900px){ .grid{grid-template-columns:repeat(2,1fr);} .row,.niches{grid-template-columns:1fr;} }
-  .pin { background:#fff; border:1px solid #e2e8f0; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; }
+  @media (max-width:980px){ .grid{grid-template-columns:repeat(2,1fr);} .row,.niches{grid-template-columns:1fr;} }
+  .pin { background:#fff; border:1px solid #e2e8f0; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; position:relative; }
+  .pin.selected { outline:3px solid var(--accent); }
   .imgbox { position:relative; width:100%; aspect-ratio:2/3; background:#f1f5f9; display:grid; place-items:center; }
   .imgbox img { width:100%; height:100%; object-fit:cover; }
-  .tag { position:absolute; top:8px; left:8px; font-size:9px; font-weight:800; text-transform:uppercase; padding:3px 7px; border-radius:6px; color:#fff; }
+  .tag { position:absolute; bottom:8px; right:8px; font-size:9px; font-weight:800; text-transform:uppercase; padding:3px 7px; border-radius:6px; color:#fff; }
   .ctr { position:absolute; bottom:8px; left:8px; font-size:10px; font-weight:800; padding:3px 7px; border-radius:6px; color:#fff; }
   .ops { position:absolute; top:8px; right:8px; display:flex; gap:6px; }
   .op { width:30px; height:30px; border-radius:8px; background:rgba(255,255,255,.92); border:none; cursor:pointer; display:grid; place-items:center; font-size:14px; }
+  .sel { position:absolute; top:8px; left:8px; width:24px; height:24px; cursor:pointer; accent-color:var(--accent); }
   .pin .body { padding:12px; display:flex; flex-direction:column; gap:4px; flex:1; }
   .pin h3 { font-size:14px; margin:0; font-weight:700; line-height:1.25; }
   .pin .desc { font-size:11px; color:#64748b; margin:0; }
   .pin .why { font-size:10px; font-style:italic; color:#94a3b8; margin:0; }
+  .pin .psy { font-size:10px; color:#7c3aed; font-weight:700; margin:0; }
   .pin .board { margin-top:auto; padding-top:8px; font-size:10px; font-weight:700; color:var(--accent); }
   .spin { width:26px; height:26px; border:3px solid #cbd5e1; border-top-color:var(--accent); border-radius:50%; animation:s 1s linear infinite; }
   @keyframes s { to { transform:rotate(360deg);} }
@@ -55,6 +60,9 @@
   .keyrow { display:flex; align-items:center; gap:8px; margin-top:4px; }
   .dot { width:9px; height:9px; border-radius:50%; background:#dc2626; }
   .dot.ok { background:#16a34a; }
+  table { width:100%; border-collapse:collapse; margin-top:12px; font-size:12px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #e2e8f0; vertical-align:top; }
+  th { color:#64748b; font-weight:700; }
 </style>
 </head>
 <body>
@@ -63,24 +71,24 @@
     <div class="logo">✦</div>
     <div>
       <h1>PinForge Studio</h1>
-      <div class="sub">CTR-optimized Pinterest pins · AI strategy + Nano Banana · runs fully in Canvas</div>
+      <div class="sub">CTR-optimized pins · AI click-psychology + Nano Banana · auto-scheduler · runs in Canvas</div>
     </div>
   </div>
 </header>
 
 <main class="wrap">
   <section class="card">
-    <label>Niche</label>
+    <label>Niche / Mode</label>
     <div class="niches" id="niches"></div>
 
     <div class="row">
       <div>
-        <label>Brand / URL (optional)</label>
-        <input type="text" id="brand" placeholder="e.g. myfitsite.com" />
+        <label>Affiliate / destination link (optional)</label>
+        <input type="text" id="link" placeholder="e.g. https://www.fiverr.com/s/your-ref" />
       </div>
       <div>
         <label>Keyword / Offer (optional)</label>
-        <input type="text" id="keyword" placeholder="e.g. weight loss meal prep" />
+        <input type="text" id="keyword" placeholder="auto by niche if empty" />
       </div>
       <div>
         <label>Gemini API key</label>
@@ -91,7 +99,7 @@
 
     <div style="margin-top:16px;">
       <label>Number of pins: <span id="countLabel">10</span></label>
-      <input type="range" min="1" max="12" value="10" id="count" class="range" />
+      <input type="range" min="1" max="16" value="10" id="count" class="range" />
     </div>
 
     <div style="margin-top:22px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
@@ -102,13 +110,22 @@
   </section>
 
   <details class="card strategy" id="strategyBox" style="display:none;" open>
-    <summary style="cursor:pointer; font-weight:800;">📈 Click strategy (the AI plans this before generating)</summary>
+    <summary style="cursor:pointer; font-weight:800;">🧠 Click psychology & strategy (the AI plans this, adapted to the niche, before generating)</summary>
     <pre id="strategyText"></pre>
   </details>
 
   <div class="actions" id="actions" style="display:none;"></div>
   <section class="grid" id="grid"></section>
-  <div class="empty" id="empty">Pick a niche and press “Generate”. The AI first plans a click strategy adapted to the niche, then creates the pins.</div>
+
+  <section class="card" id="scheduleBox" style="display:none; margin-top:24px;">
+    <h2 style="margin:0 0 4px; font-size:18px;">📅 Auto-Schedule</h2>
+    <div class="muted">Boards auto-selected by the AI, times spread for best engagement (80/20 value-vs-offer), link + SEO description attached.</div>
+    <div id="scheduleTable"></div>
+    <div class="actions" id="scheduleActions"></div>
+    <div class="note" id="publishNote"></div>
+  </section>
+
+  <div class="empty" id="empty">Pick a niche and press “Generate”. The AI first plans click psychology adapted to the niche, then creates the pins. Then select pins and Auto-Schedule.</div>
 </main>
 
 <script>
@@ -116,40 +133,68 @@ const TEXT_MODEL = "gemini-2.5-flash";
 const IMAGE_MODEL = "gemini-2.5-flash-image"; // Nano Banana
 const API_ROOT = "https://generativelanguage.googleapis.com/v1beta/models";
 
-// Niche playbooks — CTR formulas + Pinterest policy, in English
+// Niche playbooks (English). CTR formulas + Pinterest policy + default psychology.
 const NICHES = {
-  HEALTH_FITNESS: {
-    label: "Health & Fitness", accent: "#16A34A",
+  HEALTH_LONGEVITY: {
+    label: "Health, Fitness & Longevity", accent: "#16A34A",
     layouts: ["numbered listicle", "icon infographic", "step-by-step routine"],
-    banned: "STRICTLY FORBIDDEN: shocking before/after images, body-weight comparisons, unrealistic promises.",
+    banned: "STRICTLY FORBIDDEN: shocking before/after images, body-weight comparisons, unrealistic medical promises.",
     style: "flat vector illustration, energetic, clean infographic style",
-    palette: "fresh green, blue, white",
-    hint: "morning routine, healthy weight loss, energy, nutrition",
-    formulas: "numbered lists ('5 breakfasts for...'), specific measurable results, short routines ('in 10 minutes')",
+    palette: "fresh green, teal, white",
+    hint: "weight loss, supplements, workouts, biohacking, longevity",
+    formulas: "numbered lists ('5 breakfasts for...'), specific measurable results, short routines ('in 10 minutes'), science-backed angles",
+  },
+  HOME_DECOR: {
+    label: "Organization & Home Decor", accent: "#D97706",
+    layouts: ["before/after-of-a-SPACE (not body)", "numbered listicle", "checklist infographic"],
+    banned: "No clickbait that misrepresents the result.",
+    style: "warm lifestyle photography look or cozy flat illustration, aspirational interior aesthetic",
+    palette: "warm beige, sage, terracotta, white",
+    hint: "DIY projects, room decor, cleaning hacks, organization",
+    formulas: "transformation of a space, '15 ways to...', budget hacks ('under $20'), seasonal/room-by-room checklists",
   },
   PERSONAL_FINANCE: {
-    label: "Personal Finance", accent: "#1D4ED8",
+    label: "Personal Finance & Budgeting", accent: "#1D4ED8",
     layouts: ["cheat-sheet grid", "2-column comparison", "numbered listicle"],
     banned: "No guaranteed-returns or get-rich-quick claims.",
     style: "modern financial infographic, data visualization, trustworthy look",
     palette: "deep blue, money green, white",
-    hint: "saving money, budgeting, investing, passive income",
-    formulas: "specific dollar amounts ('Save $500 this month'), cheat sheets, clear comparisons, concrete steps",
+    hint: "saving, investing, debt management, passive income",
+    formulas: "specific dollar amounts ('Save $500 this month'), cheat sheets, debt-payoff steps, passive-income lists",
   },
-  B2B_SAAS: {
-    label: "B2B SaaS", accent: "#6D28D9",
-    layouts: ["2-column comparison", "cheat-sheet grid", "numbered listicle"],
+  DIGITAL_EDUCATION: {
+    label: "Digital Education", accent: "#6D28D9",
+    layouts: ["2-column comparison", "cheat-sheet grid", "numbered listicle", "tool roundup"],
     banned: "No fabricated metrics or fake testimonials.",
-    style: "clean SaaS dashboard illustration, isometric, professional",
+    style: "clean modern UI illustration, isometric, professional, screenshot-style mockups",
     palette: "purple, blue, light gray",
-    hint: "productivity, automation, ROI, integrations",
-    formulas: "time saved ('Automate X in 5 min'), tool comparisons, listicles of tools, concrete ROI",
+    hint: "Canva templates, automations, coding courses, AI for content",
+    formulas: "tool roundups ('7 AI tools for...'), time saved ('Automate X in 5 min'), free-resource lists, step-by-step tutorials",
+  },
+  TRAVEL_LIFESTYLE: {
+    label: "Travel & Lifestyle Planning", accent: "#0891B2",
+    layouts: ["destination listicle", "itinerary checklist", "packing infographic"],
+    banned: "No misleading travel claims.",
+    style: "vivid travel photography look, wanderlust aesthetic, clean text overlay",
+    palette: "ocean blue, sunset orange, cream",
+    hint: "travel itineraries, packing lists, budget travel, lifestyle planning",
+    formulas: "destination lists ('10 hidden gems in...'), itineraries ('3 days in...'), packing checklists, budget breakdowns",
+  },
+  FIVERR_TRENDING: {
+    label: "Fiverr — Trending Services", accent: "#1DBF73", trending: true,
+    layouts: ["service spotlight", "numbered listicle", "comparison"],
+    banned: "No fake earnings claims.",
+    style: "clean modern gig-marketplace illustration, bold service iconography, professional",
+    palette: "fiverr green, dark slate, white",
+    hint: "most-searched Fiverr services right now",
+    formulas: "service spotlights ('Need X? Hire a pro in minutes'), outcome-driven ('Get a logo in 24h'), trending-skill roundups",
   },
 };
 
-const state = { niche: "HEALTH_FITNESS", pins: [], busy: false, sortByCtr: true, strategy: "" };
+const state = { niche: "HEALTH_LONGEVITY", pins: [], busy: false, sortByCtr: true, strategy: "", selected: {}, scheduled: [] };
 
 function $(id){ return document.getElementById(id); }
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 function getKey(){
   const v = $("apiKey").value.trim();
   if (v) { localStorage.setItem("pf_gemini_key", v); return v; }
@@ -176,61 +221,79 @@ async function fetchWithBackoff(url, options, maxAttempts=5){
     return res.json();
   }
 }
-function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
-
-async function callText(key, prompt, genConfig){
-  const json = await fetchWithBackoff(API_ROOT+"/"+TEXT_MODEL+":generateContent?key="+key, {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({ contents:[{role:"user",parts:[{text:prompt}]}], generationConfig: genConfig }),
-  });
-  return (json.candidates && json.candidates[0] && json.candidates[0].content
+function textOf(json){
+  return (json && json.candidates && json.candidates[0] && json.candidates[0].content
     && json.candidates[0].content.parts && json.candidates[0].content.parts[0]
     && json.candidates[0].content.parts[0].text) || "";
 }
+async function callText(key, prompt, genConfig, tools){
+  const body = { contents:[{role:"user",parts:[{text:prompt}]}] };
+  if (genConfig) body.generationConfig = genConfig;
+  if (tools) body.tools = tools;
+  const json = await fetchWithBackoff(API_ROOT+"/"+TEXT_MODEL+":generateContent?key="+key, {
+    method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body),
+  });
+  return textOf(json);
+}
 
-// STEP 0 — the AI plans a CTR strategy adapted to the niche
-async function planStrategy(key, niche, brand, keyword){
+// Trending Fiverr services via Google Search grounding (with fallback)
+async function fetchTrending(key, topic){
+  const prompt = "List 12 of the most popular / most-searched Fiverr service categories right now"
+    + (topic ? " related to: "+topic : "") + ". Return ONLY a comma-separated list, no numbering, no extra text.";
+  try {
+    const t = await callText(key, prompt, { temperature:0.4 }, [{ google_search: {} }]);
+    if (t && t.split(",").length >= 4) return t.replace(/\n/g," ").trim();
+  } catch(e) { /* fall through */ }
+  return "logo design, AI content writing, short-form video editing, social media management, voice over, WordPress development, SEO, UGC ads, 3D modeling, chatbot/AI automation, ebook design, virtual assistant";
+}
+
+// STEP 0 — the AI plans the CLICK PSYCHOLOGY + strategy, adapted to the niche
+async function planStrategy(key, niche, link, keyword, trending){
   const n = NICHES[niche];
   const prompt =
 `You are an expert at maximizing CTR (click-through rate) on Pinterest, a visual search engine with strong purchase intent.
-Niche: ${n.label}. Brand: ${brand||"(none)"}. Topic: ${keyword||n.hint}.
+Niche/Mode: ${n.label}. Topic: ${keyword || n.hint}.${trending ? " Trending services to cover: "+trending : ""}
 
-Think step by step and write a CLICK STRATEGY for this campaign as 6-8 ACTIONABLE principles:
-- title formulas that statistically win clicks (numbers, SPECIFIC results/amounts, curiosity gap, power words);
-- which short on-image overlay text stops the scroll on mobile;
-- visual hierarchy and style that grab the eye (use: ${n.formulas});
+Think step by step and write the CLICK PSYCHOLOGY & STRATEGY for this campaign as 6-8 ACTIONABLE principles in English:
+- the psychological triggers that earn clicks here (curiosity gap, loss aversion, social proof, instant gratification, pattern interrupt, FOMO) and WHICH to use for THIS niche;
+- title formulas that statistically win clicks (numbers, SPECIFIC results/amounts, power words);
+- the short on-image overlay text that stops the scroll on mobile;
+- visual hierarchy, color and contrast that grab the eye (use: ${n.formulas});
 - mistakes to avoid (${n.banned});
 - how each pin stays DISTINCT (different angles), never cosmetic variations.
-Output only the bullet list of principles in English, no intro.`;
+Output only the bullet list of principles, no intro.`;
   return callText(key, prompt, { temperature: 0.7 });
 }
 
-// STEP 1 — N distinct blueprints applying the strategy (all English)
-async function planPins(key, niche, brand, keyword, count, strategy){
+// STEP 1 — N distinct blueprints applying the psychology (all English)
+async function planPins(key, niche, link, keyword, count, strategy, trending){
   const n = NICHES[niche];
   const prompt =
 `You are a Pinterest content strategist, expert in high CTR and non-generic copywriting. Write everything in ENGLISH.
-Niche: ${n.label}. Brand/URL: ${brand||"(none)"}. Topic: ${keyword||n.hint}.
+Niche/Mode: ${n.label}. Topic: ${keyword || n.hint}.
 Allowed layouts: ${n.layouts.join(", ")}. ${n.banned}
+${trending ? "Each pin must promote a DIFFERENT trending service from this list (spread them, do not repeat): "+trending+". Frame them as services you can hire on Fiverr." : ""}
 
-APPLY THIS CLICK STRATEGY you designed:
+APPLY THIS click psychology you designed:
 """${strategy}"""
 
-Generate EXACTLY ${count} DISTINCT pin concepts (different angles, hooks, layouts and palettes) engineered to maximize clicks.
+Generate EXACTLY ${count} DISTINCT pin concepts (different angles, hooks, layouts, palettes) engineered to maximize clicks.
+The pin ITSELF must embed click psychology (the image + overlay must be designed to make people click, not just inform).
 Per concept return:
-- "overlayText": SHORT title (3-7 words) rendered BOLD on the image, action-oriented + specific number/result (e.g. "Save $500 This Month"). Never passive (not "Helpful Tips").
-- "title": pin title (max 100 chars), benefit + action.
-- "description": max 480 chars, with the keyword in the FIRST sentence; end with "#ad #affiliate".
-- "altText": rich DESCRIPTIVE alt text (good alt text can raise outbound clicks by up to 123%).
-- "boardSuggestion": a semantically relevant Pinterest board name (e.g. "Healthy Weight Loss Recipes"), not generic.
+- "overlayText": SHORT title (3-7 words) rendered BOLD on the image, action-oriented + a specific number/result (e.g. "Save $500 This Month"). Never passive.
+- "psychologyTrigger": the main psychological lever used (e.g. "Curiosity gap + loss aversion").
+- "title": pin title (max 100 chars), benefit + action, SEO-friendly.
+- "description": SEO-optimized, max 480 chars, with the main keyword in the FIRST sentence, include 2-3 relevant search keywords naturally, end with "#ad #affiliate".
+- "altText": rich DESCRIPTIVE alt text (good alt text can raise outbound clicks up to 123%).
+- "boardSuggestion": a semantically relevant, SEO-friendly Pinterest board name (e.g. "Healthy Weight Loss Recipes"), not generic.
 - "ctrScore": number 1-100, your estimate of click potential.
-- "ctrRationale": one short sentence, why this concept earns clicks.
-- "imagePrompt": DETAILED prompt for an image generator: vertical 2:3 pin design, overlayText rendered as BOLD readable sans-serif, at least 30% empty space, a layout from the list, palette ${n.palette}, style ${n.style}${niche==="HEALTH_FITNESS"?"; NO before/after or bodies":""}.`;
+- "ctrRationale": one short sentence on why it earns clicks.
+- "imagePrompt": DETAILED prompt for an image generator: vertical 2:3 pin, overlayText rendered as BOLD readable sans-serif with strong visual hierarchy and high contrast, at least 30% empty space, a layout from the list, palette ${n.palette}, style ${n.style}. Do NOT include any website URL, watermark, or brand domain in the image.${niche==="HEALTH_LONGEVITY"?" NO before/after bodies." : ""}`;
 
   const schema = { type:"ARRAY", items:{ type:"OBJECT", properties:{
-    overlayText:{type:"STRING"}, title:{type:"STRING"}, description:{type:"STRING"}, altText:{type:"STRING"},
-    boardSuggestion:{type:"STRING"}, ctrScore:{type:"NUMBER"}, ctrRationale:{type:"STRING"}, imagePrompt:{type:"STRING"}
-  }, required:["overlayText","title","description","altText","boardSuggestion","ctrScore","ctrRationale","imagePrompt"] } };
+    overlayText:{type:"STRING"}, psychologyTrigger:{type:"STRING"}, title:{type:"STRING"}, description:{type:"STRING"},
+    altText:{type:"STRING"}, boardSuggestion:{type:"STRING"}, ctrScore:{type:"NUMBER"}, ctrRationale:{type:"STRING"}, imagePrompt:{type:"STRING"}
+  }, required:["overlayText","psychologyTrigger","title","description","altText","boardSuggestion","ctrScore","ctrRationale","imagePrompt"] } };
 
   const text = await callText(key, prompt, { responseMimeType:"application/json", responseSchema:schema, temperature:1.0 });
   let arr = JSON.parse(text || "[]");
@@ -238,15 +301,15 @@ Per concept return:
   return arr.slice(0, count);
 }
 
-// STEP 2 — Nano Banana renders the image; overlayText is the on-image title
-async function makeImage(key, imagePrompt, overlayText, brand){
+// STEP 2 — Nano Banana renders the image; NO brand URL on the pin
+async function makeImage(key, imagePrompt, overlayText){
   const fullPrompt =
 `${imagePrompt}
 
 MANDATORY on-image overlay text, as the main title: "${overlayText}".
 Strict constraints: VERTICAL 2:3 orientation (like 1000x1500 px); THICK (bold) sans-serif typography, very legible on mobile
-(no script/decorative fonts); at least 30% empty space (airy, breathing room); brand URL "${brand||"brand.com"}" small at the bottom;
-high contrast that stops the scroll; high quality, no watermark.`;
+(no script/decorative fonts); at least 30% empty space (airy); strong visual hierarchy and high contrast that stops the scroll;
+designed with click psychology (the eye is pulled to the hook first). DO NOT render any website URL, domain, watermark or brand text. High quality.`;
   const url = API_ROOT+"/"+IMAGE_MODEL+":generateContent?key="+key;
   const base = { contents:[{role:"user",parts:[{text:fullPrompt}]}] };
   const variants = [
@@ -274,44 +337,39 @@ function renderNiches(){
     const n = NICHES[key];
     const b = document.createElement("button");
     b.className = "niche" + (state.niche===key ? " active":"");
-    b.innerHTML = "<b>"+n.label+"</b><span>"+n.layouts[0]+"</span>";
+    b.innerHTML = "<b>"+n.label+"</b><span>"+n.hint+"</span>";
     b.onclick = () => { state.niche = key; document.documentElement.style.setProperty("--accent", n.accent); renderNiches(); };
     el.appendChild(b);
   });
 }
-
 function ctrColor(s){ return s>=80 ? "#16A34A" : s>=60 ? "#CA8A04" : "#DC2626"; }
-
-function displayPins(){
-  return state.sortByCtr ? state.pins.slice().sort((a,b)=>(b.ctrScore||0)-(a.ctrScore||0)) : state.pins;
-}
+function displayPins(){ return state.sortByCtr ? state.pins.slice().sort((a,b)=>(b.ctrScore||0)-(a.ctrScore||0)) : state.pins; }
 
 function renderActions(){
   const el = $("actions");
   if (!state.pins.length) { el.style.display="none"; el.innerHTML=""; return; }
-  el.style.display = "flex";
+  el.style.display = "flex"; el.innerHTML = "";
   const ready = state.pins.filter(p=>p.image).length;
-  el.innerHTML = "";
-  const sortBtn = document.createElement("button");
-  sortBtn.className = "btn-ghost";
-  sortBtn.textContent = state.sortByCtr ? "↕ Sorted by CTR score" : "↕ Original order";
-  sortBtn.onclick = ()=>{ state.sortByCtr=!state.sortByCtr; renderActions(); renderGrid(); };
-  el.appendChild(sortBtn);
+  const selCount = Object.values(state.selected).filter(Boolean).length;
+
+  el.appendChild(mkBtn(state.sortByCtr ? "↕ Sorted by CTR" : "↕ Original order", ()=>{ state.sortByCtr=!state.sortByCtr; renderActions(); renderGrid(); }));
+  el.appendChild(mkBtn("✓ Select all", ()=>{ state.pins.forEach(p=>state.selected[p.id]=true); renderGrid(); renderActions(); }));
+  el.appendChild(mkBtn("✕ Clear selection", ()=>{ state.selected={}; renderGrid(); renderActions(); }));
+  const sch = mkBtn("📅 Auto-Schedule selected ("+selCount+")", autoSchedule);
+  if (selCount===0) sch.disabled = true;
+  el.appendChild(sch);
   if (ready>0){
-    const dl = document.createElement("button");
-    dl.className="btn-ghost"; dl.textContent="⬇ Download all images ("+ready+")";
-    dl.onclick = downloadAll; el.appendChild(dl);
-    const cs = document.createElement("button");
-    cs.className="btn-ghost"; cs.textContent="📄 Export CSV (copy + CTR + board)";
-    cs.onclick = exportCsv; el.appendChild(cs);
+    el.appendChild(mkBtn("⬇ Download all images ("+ready+")", downloadAll));
+    el.appendChild(mkBtn("📄 Export pins CSV", exportPinsCsv));
   }
 }
+function mkBtn(label, fn){ const b=document.createElement("button"); b.className="btn-ghost"; b.textContent=label; b.onclick=fn; return b; }
 
 function renderGrid(){
   const grid = $("grid"); grid.innerHTML = "";
   $("empty").style.display = state.pins.length ? "none" : "block";
   displayPins().forEach(pin => {
-    const art = document.createElement("article"); art.className="pin";
+    const art = document.createElement("article"); art.className="pin" + (state.selected[pin.id] ? " selected":"");
     const acc = NICHES[state.niche].accent;
     let media;
     if (pin.image) media = '<img src="'+pin.image+'" alt="'+escapeAttr(pin.altText)+'">';
@@ -321,8 +379,9 @@ function renderGrid(){
     const ctrBadge = (typeof pin.ctrScore==="number") ? '<span class="ctr" style="background:'+ctrColor(pin.ctrScore)+'">CTR '+pin.ctrScore+'</span>' : "";
     art.innerHTML =
       '<div class="imgbox">'+media+
-        '<span class="tag" style="background:'+tagBg+'">'+(pin.contentClass==="OFFER"?"Offer":"Value")+'</span>'+
+        '<input type="checkbox" class="sel" data-act="sel" data-id="'+pin.id+'" '+(state.selected[pin.id]?"checked":"")+' title="Select for scheduling">'+
         ctrBadge+
+        '<span class="tag" style="background:'+tagBg+'">'+(pin.contentClass==="OFFER"?"Offer":"Value")+'</span>'+
         '<div class="ops">'+
           '<button class="op" title="Regenerate" data-act="regen" data-id="'+pin.id+'">'+(pin.regenerating?"…":"↻")+'</button>'+
           (pin.image?'<button class="op" title="Download" data-act="dl" data-id="'+pin.id+'">⬇</button>':"")+
@@ -330,16 +389,18 @@ function renderGrid(){
       '</div>'+
       '<div class="body">'+
         '<h3>'+escapeHtml(pin.title||"")+'</h3>'+
+        (pin.psychologyTrigger?'<p class="psy">🎯 '+escapeHtml(pin.psychologyTrigger)+'</p>':"")+
         '<p class="desc">'+escapeHtml((pin.description||"").slice(0,120))+'</p>'+
-        (pin.ctrRationale?'<p class="why">CTR: '+escapeHtml(pin.ctrRationale)+'</p>':"")+
+        (pin.ctrRationale?'<p class="why">'+escapeHtml(pin.ctrRationale)+'</p>':"")+
         (pin.boardSuggestion?'<span class="board">Board: '+escapeHtml(pin.boardSuggestion)+'</span>':"")+
       '</div>';
     grid.appendChild(art);
   });
-  grid.querySelectorAll("[data-act]").forEach(btn=>{
-    const id = Number(btn.getAttribute("data-id"));
-    const act = btn.getAttribute("data-act");
-    btn.onclick = () => { if(act==="regen") regenerate(id); else downloadById(id); };
+  grid.querySelectorAll("[data-act]").forEach(elm=>{
+    const id = Number(elm.getAttribute("data-id"));
+    const act = elm.getAttribute("data-act");
+    if (act==="sel") elm.onchange = (e)=>{ state.selected[id]=e.target.checked; const art=e.target.closest(".pin"); if(art) art.classList.toggle("selected",e.target.checked); renderActions(); };
+    else elm.onclick = ()=>{ if(act==="regen") regenerate(id); else downloadById(id); };
   });
 }
 
@@ -349,21 +410,22 @@ function escapeAttr(s){ return escapeHtml(s).replace(/"/g,"&quot;"); }
 async function handleGenerate(){
   const key = getKey();
   if (!key) { showErr("Please paste your Gemini API key first."); return; }
-  state.busy = true; state.pins = []; state.strategy = "";
+  state.busy = true; state.pins = []; state.strategy = ""; state.selected = {}; state.scheduled = [];
   $("genBtn").disabled = true; showErr(""); renderGrid(); renderActions();
-  $("strategyBox").style.display="none";
-  const niche = state.niche;
-  const brand = $("brand").value.trim();
-  const keyword = $("keyword").value.trim();
-  const count = Number($("count").value);
+  $("strategyBox").style.display="none"; $("scheduleBox").style.display="none";
+  const niche = state.niche, link = $("link").value.trim(), keyword = $("keyword").value.trim(), count = Number($("count").value);
+  const isTrending = !!NICHES[niche].trending;
   try {
-    setPhase("Planning the click strategy (CTR)...");
-    const strategy = await planStrategy(key, niche, brand, keyword);
+    let trending = "";
+    if (isTrending){ setPhase("Finding trending Fiverr services..."); trending = await fetchTrending(key, keyword); }
+
+    setPhase("Planning click psychology (CTR)...");
+    const strategy = await planStrategy(key, niche, link, keyword, trending);
     state.strategy = strategy;
-    $("strategyBox").style.display="block"; $("strategyText").textContent = strategy;
+    $("strategyBox").style.display="block"; $("strategyText").textContent = (isTrending?("Trending services: "+trending+"\n\n"):"") + strategy;
 
     setPhase("Generating pin concepts...");
-    const blueprints = await planPins(key, niche, brand, keyword, count, strategy);
+    const blueprints = await planPins(key, niche, link, keyword, count, strategy, trending);
     if (!blueprints.length) throw new Error("No concepts returned. Try again.");
     state.pins = blueprints.map((b,i)=>Object.assign({}, b, { id:i, image:null, imgError:null, contentClass:((i+1)%5===0)?"OFFER":"EDUCATIONAL" }));
     renderGrid(); renderActions();
@@ -371,10 +433,8 @@ async function handleGenerate(){
     setPhase("Rendering images (Nano Banana)...");
     let done = 0;
     await Promise.all(state.pins.map(async (b)=>{
-      try {
-        const img = await makeImage(key, b.imagePrompt, b.overlayText, brand);
-        const p = state.pins.find(x=>x.id===b.id); if (p){ p.image = img; }
-      } catch(e){ const p = state.pins.find(x=>x.id===b.id); if (p){ p.imgError = e.message; } }
+      try { const img = await makeImage(key, b.imagePrompt, b.overlayText); const p = state.pins.find(x=>x.id===b.id); if (p) p.image = img; }
+      catch(e){ const p = state.pins.find(x=>x.id===b.id); if (p) p.imgError = e.message; }
       finally { done++; setPhase("Rendering images (Nano Banana)... ("+done+"/"+state.pins.length+")"); renderGrid(); renderActions(); }
     }));
     setPhase("");
@@ -385,7 +445,7 @@ async function handleGenerate(){
 async function regenerate(id){
   const key = getKey(); const p = state.pins.find(x=>x.id===id); if (!p) return;
   p.image=null; p.imgError=null; p.regenerating=true; renderGrid();
-  try { p.image = await makeImage(key, p.imagePrompt+" (new variation, different composition)", p.overlayText, $("brand").value.trim()); }
+  try { p.image = await makeImage(key, p.imagePrompt+" (new variation, different composition)", p.overlayText); }
   catch(e){ p.imgError = e.message; }
   finally { p.regenerating=false; renderGrid(); renderActions(); }
 }
@@ -394,12 +454,72 @@ function downloadById(id){ const p = state.pins.find(x=>x.id===id); if (p) downl
 function downloadPin(pin){ if(!pin.image) return; const a=document.createElement("a"); a.href=pin.image; a.download="pin-"+(pin.id+1)+".png"; a.click(); }
 async function downloadAll(){ for (const p of state.pins.filter(x=>x.image)){ downloadPin(p); await wait(350); } }
 
-function exportCsv(){
-  const esc = s => '"'+String(s==null?"":s).replace(/"/g,'""')+'"';
-  const header = ["nr","type","ctrScore","overlayText","title","description","altText","board","ctrRationale"].join(",");
-  const rows = displayPins().map((p,i)=>[i+1,p.contentClass,(p.ctrScore==null?"":p.ctrScore),esc(p.overlayText),esc(p.title),esc(p.description),esc(p.altText),esc(p.boardSuggestion),esc(p.ctrRationale)].join(","));
-  const blob = new Blob([[header].concat(rows).join("\n")], {type:"text/csv;charset=utf-8"});
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "pinforge-pins.csv"; a.click();
+// ---- AUTO-SCHEDULE ----
+// Best engagement hours (local) + spread across days, keep 80/20 (no two offers back-to-back).
+function buildSchedule(pins){
+  const hours = [9, 13, 17, 20];
+  // light reorder so OFFER pins are not adjacent
+  const offers = pins.filter(p=>p.contentClass==="OFFER");
+  const values = pins.filter(p=>p.contentClass!=="OFFER");
+  const ordered = []; let vi=0, oi=0, sinceOffer=99;
+  while (vi<values.length || oi<offers.length){
+    if (oi<offers.length && sinceOffer>=4 && (vi>=values.length || true)) { ordered.push(offers[oi++]); sinceOffer=0; }
+    else if (vi<values.length){ ordered.push(values[vi++]); sinceOffer++; }
+    else { ordered.push(offers[oi++]); sinceOffer=0; }
+  }
+  const now = new Date();
+  let day=0, slot=0;
+  return ordered.map(p=>{
+    const d = new Date(now);
+    d.setDate(d.getDate()+1+day); d.setHours(hours[slot],0,0,0);
+    slot++; if (slot>=hours.length){ slot=0; day++; }
+    return Object.assign({}, p, { scheduledFor: d });
+  });
+}
+
+function autoSchedule(){
+  const link = $("link").value.trim();
+  const selectedPins = state.pins.filter(p=>state.selected[p.id]);
+  if (!selectedPins.length){ return; }
+  state.scheduled = buildSchedule(selectedPins).map(p=>Object.assign({}, p, { link: link || "" }));
+  renderSchedule();
+  $("scheduleBox").style.display="block";
+  $("scheduleBox").scrollIntoView({ behavior:"smooth" });
+}
+
+function fmt(d){ try { return d.toLocaleString(undefined,{weekday:"short",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}); } catch(e){ return d.toISOString(); } }
+
+function renderSchedule(){
+  const wrap = $("scheduleTable");
+  let rows = state.scheduled.map((p,i)=>
+    "<tr><td>"+(i+1)+"</td><td><b>"+escapeHtml(p.overlayText||p.title||"")+"</b><br><span class='muted'>"+(p.contentClass==="OFFER"?"Offer":"Value")+" · CTR "+ (p.ctrScore||"-") +"</span></td>"+
+    "<td>"+escapeHtml(p.boardSuggestion||"")+"</td>"+
+    "<td>"+fmt(p.scheduledFor)+"</td>"+
+    "<td>"+(p.link?("<a href='"+escapeAttr(p.link)+"' target='_blank'>link</a>"):"<span class='muted'>—</span>")+"</td></tr>"
+  ).join("");
+  wrap.innerHTML = "<table><thead><tr><th>#</th><th>Pin</th><th>Board (auto)</th><th>Publish time</th><th>Link</th></tr></thead><tbody>"+rows+"</tbody></table>";
+
+  const acts = $("scheduleActions"); acts.innerHTML = "";
+  acts.appendChild(mkBtn("📄 Export schedule CSV", exportScheduleCsv));
+  acts.appendChild(mkBtn("⬇ Download scheduled images", async ()=>{ for (const p of state.scheduled.filter(x=>x.image)){ downloadPin(p); await wait(350); } }));
+
+  $("publishNote").innerHTML =
+    "ℹ️ This builds the full plan in-app (boards, times, SEO copy, links) and exports it. To actually push these onto your live Pinterest account automatically, the schedule is sent to the PinForge <b>Autopilot</b> backend (Pinterest's API can't be called directly from a browser for security). Use the export now, or connect the Autopilot for hands-off publishing.";
+}
+
+function csvEsc(s){ return '"'+String(s==null?"":s).replace(/"/g,'""')+'"'; }
+function downloadBlob(text, name){ const b=new Blob([text],{type:"text/csv;charset=utf-8"}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=name; a.click(); }
+
+function exportPinsCsv(){
+  const header = ["nr","type","ctrScore","psychologyTrigger","overlayText","title","description","altText","board","ctrRationale"].join(",");
+  const rows = displayPins().map((p,i)=>[i+1,p.contentClass,(p.ctrScore==null?"":p.ctrScore),csvEsc(p.psychologyTrigger),csvEsc(p.overlayText),csvEsc(p.title),csvEsc(p.description),csvEsc(p.altText),csvEsc(p.boardSuggestion),csvEsc(p.ctrRationale)].join(","));
+  downloadBlob([header].concat(rows).join("\n"), "pinforge-pins.csv");
+}
+function exportScheduleCsv(){
+  // Columns compatible with common bulk schedulers
+  const header = ["Title","Description","Link","Board","Publish Date","Alt Text","Image File"].join(",");
+  const rows = state.scheduled.map((p,i)=>[csvEsc(p.title),csvEsc(p.description),csvEsc(p.link),csvEsc(p.boardSuggestion),csvEsc(p.scheduledFor.toISOString()),csvEsc(p.altText),csvEsc("pin-"+(p.id+1)+".png")].join(","));
+  downloadBlob([header].concat(rows).join("\n"), "pinforge-schedule.csv");
 }
 
 function setPhase(t){ $("phase").textContent = t; }
