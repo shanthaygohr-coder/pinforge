@@ -17,5 +17,5 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY package*.json ./
 EXPOSE 3000
-# La pornire ruleaza migratiile apoi serverul (Autopilot + worker).
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+# La pornire creeaza/actualizeaza tabelele din schema (fara fisiere de migrare) apoi porneste serverul.
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/main.js"]

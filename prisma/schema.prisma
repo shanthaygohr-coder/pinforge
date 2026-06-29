@@ -346,3 +346,33 @@ model ComplianceAudit {
   @@index([userId, ruleType])
   @@map("compliance_audits")
 }
+
+
+// ---------------------------------------------------------------------------
+// SCHEDULED PINS — varianta GRATUITA: publicare declansata prin cron, fara Redis.
+// Sursa de adevar pentru coada; un cron extern apeleaza /cron/publish-due.
+// ---------------------------------------------------------------------------
+model ScheduledPin {
+  id             String   @id @default(cuid())
+  accountId      String
+  boardName      String?  // numele sugerat de AI; board-ul real e rezolvat la publicare
+  boardId        String?
+  title          String
+  description    String
+  altText        String
+  link           String?
+  imageBase64    String?  // base64 al imaginii generate in Studio (text mare)
+  imageUrl       String?
+  contentClass   String   @default("EDUCATIONAL")
+  isCommercial   Boolean  @default(true)
+  scheduledFor   DateTime
+  status         String   @default("PENDING") // PENDING | PUBLISHED | FAILED
+  attempts       Int      @default(0)
+  pinterestPinId String?
+  lastError      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status, scheduledFor])
+  @@map("scheduled_pins")
+}
