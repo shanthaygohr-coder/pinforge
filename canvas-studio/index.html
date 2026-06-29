@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PinForge Studio — CTR-Optimized Pinterest Pins (Nano Banana)</title>
+<style>
+  :root { --accent:#16A34A; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#f1f5f9; color:#0f172a; }
+  header { background:#fff; border-bottom:1px solid #e2e8f0; position:sticky; top:0; z-index:10; }
+  .wrap { max-width:1100px; margin:0 auto; padding:0 20px; }
+  .head { display:flex; align-items:center; gap:12px; padding:16px 0; }
+  .logo { width:42px; height:42px; border-radius:12px; background:var(--accent); display:grid; place-items:center; color:#fff; font-size:22px; }
+  h1 { font-size:20px; margin:0; font-weight:800; }
+  .sub { font-size:12px; color:#64748b; }
+  main { padding:28px 0 60px; }
+  .card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  label { font-size:13px; font-weight:600; display:block; margin-bottom:8px; }
+  .niches { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+  .niche { border:2px solid #e2e8f0; border-radius:12px; padding:12px 14px; text-align:left; cursor:pointer; background:#fff; transition:.15s; }
+  .niche:hover { border-color:#cbd5e1; }
+  .niche.active { border-color:var(--accent); box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  .niche b { display:block; color:#0f172a; }
+  .niche span { font-size:12px; color:#64748b; }
+  .row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  input[type=text], input[type=password] { width:100%; border:1px solid #cbd5e1; border-radius:8px; padding:9px 12px; font-size:14px; }
+  input:focus { outline:2px solid var(--accent); outline-offset:0; border-color:transparent; }
+  .range { width:100%; accent-color:var(--accent); }
+  .btn { display:inline-flex; align-items:center; gap:8px; border:none; border-radius:12px; padding:12px 22px; font-weight:700; color:#fff; background:var(--accent); cursor:pointer; font-size:15px; }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .btn-ghost { background:#fff; color:#0f172a; border:1px solid #cbd5e1; border-radius:9px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+  .muted { color:#64748b; font-size:13px; }
+  .err { margin-top:14px; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; border-radius:10px; padding:12px 14px; font-size:13px; }
+  .strategy { margin-top:22px; }
+  .strategy pre { white-space:pre-wrap; font-family:inherit; font-size:13px; color:#475569; margin:10px 0 0; }
+  .actions { margin-top:22px; display:flex; flex-wrap:wrap; gap:10px; }
+  .grid { margin-top:18px; display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+  @media (max-width:900px){ .grid{grid-template-columns:repeat(2,1fr);} .row,.niches{grid-template-columns:1fr;} }
+  .pin { background:#fff; border:1px solid #e2e8f0; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; }
+  .imgbox { position:relative; width:100%; aspect-ratio:2/3; background:#f1f5f9; display:grid; place-items:center; }
+  .imgbox img { width:100%; height:100%; object-fit:cover; }
+  .tag { position:absolute; top:8px; left:8px; font-size:9px; font-weight:800; text-transform:uppercase; padding:3px 7px; border-radius:6px; color:#fff; }
+  .ctr { position:absolute; bottom:8px; left:8px; font-size:10px; font-weight:800; padding:3px 7px; border-radius:6px; color:#fff; }
+  .ops { position:absolute; top:8px; right:8px; display:flex; gap:6px; }
+  .op { width:30px; height:30px; border-radius:8px; background:rgba(255,255,255,.92); border:none; cursor:pointer; display:grid; place-items:center; font-size:14px; }
+  .pin .body { padding:12px; display:flex; flex-direction:column; gap:4px; flex:1; }
+  .pin h3 { font-size:14px; margin:0; font-weight:700; line-height:1.25; }
+  .pin .desc { font-size:11px; color:#64748b; margin:0; }
+  .pin .why { font-size:10px; font-style:italic; color:#94a3b8; margin:0; }
+  .pin .board { margin-top:auto; padding-top:8px; font-size:10px; font-weight:700; color:var(--accent); }
+  .spin { width:26px; height:26px; border:3px solid #cbd5e1; border-top-color:var(--accent); border-radius:50%; animation:s 1s linear infinite; }
+  @keyframes s { to { transform:rotate(360deg);} }
+  .empty { margin-top:60px; text-align:center; color:#94a3b8; }
+  .keyrow { display:flex; align-items:center; gap:8px; margin-top:4px; }
+  .dot { width:9px; height:9px; border-radius:50%; background:#dc2626; }
+  .dot.ok { background:#16a34a; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap head">
+    <div class="logo">✦</div>
+    <div>
+      <h1>PinForge Studio</h1>
+      <div class="sub">CTR-optimized Pinterest pins · AI strategy + Nano Banana · runs fully in Canvas</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="card">
+    <label>Niche</label>
+    <div class="niches" id="niches"></div>
+
+    <div class="row">
+      <div>
+        <label>Brand / URL (optional)</label>
+        <input type="text" id="brand" placeholder="e.g. myfitsite.com" />
+      </div>
+      <div>
+        <label>Keyword / Offer (optional)</label>
+        <input type="text" id="keyword" placeholder="e.g. weight loss meal prep" />
+      </div>
+      <div>
+        <label>Gemini API key</label>
+        <input type="password" id="apiKey" placeholder="paste your key (stored locally)" />
+        <div class="keyrow"><span class="dot" id="keydot"></span><span class="muted" id="keytxt">No key yet</span></div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <label>Number of pins: <span id="countLabel">10</span></label>
+      <input type="range" min="1" max="12" value="10" id="count" class="range" />
+    </div>
+
+    <div style="margin-top:22px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+      <button class="btn" id="genBtn">✨ Generate pins</button>
+      <span class="muted" id="phase"></span>
+    </div>
+    <div id="errBox"></div>
+  </section>
+
+  <details class="card strategy" id="strategyBox" style="display:none;" open>
+    <summary style="cursor:pointer; font-weight:800;">📈 Click strategy (the AI plans this before generating)</summary>
+    <pre id="strategyText"></pre>
+  </details>
+
+  <div class="actions" id="actions" style="display:none;"></div>
+  <section class="grid" id="grid"></section>
+  <div class="empty" id="empty">Pick a niche and press “Generate”. The AI first plans a click strategy adapted to the niche, then creates the pins.</div>
+</main>
+
+<script>
+const TEXT_MODEL = "gemini-2.5-flash";
+const IMAGE_MODEL = "gemini-2.5-flash-image"; // Nano Banana
+const API_ROOT = "https://generativelanguage.googleapis.com/v1beta/models";
+
+// Niche playbooks — CTR formulas + Pinterest policy, in English
+const NICHES = {
+  HEALTH_FITNESS: {
+    label: "Health & Fitness", accent: "#16A34A",
+    layouts: ["numbered listicle", "icon infographic", "step-by-step routine"],
+    banned: "STRICTLY FORBIDDEN: shocking before/after images, body-weight comparisons, unrealistic promises.",
+    style: "flat vector illustration, energetic, clean infographic style",
+    palette: "fresh green, blue, white",
+    hint: "morning routine, healthy weight loss, energy, nutrition",
+    formulas: "numbered lists ('5 breakfasts for...'), specific measurable results, short routines ('in 10 minutes')",
+  },
+  PERSONAL_FINANCE: {
+    label: "Personal Finance", accent: "#1D4ED8",
+    layouts: ["cheat-sheet grid", "2-column comparison", "numbered listicle"],
+    banned: "No guaranteed-returns or get-rich-quick claims.",
+    style: "modern financial infographic, data visualization, trustworthy look",
+    palette: "deep blue, money green, white",
+    hint: "saving money, budgeting, investing, passive income",
+    formulas: "specific dollar amounts ('Save $500 this month'), cheat sheets, clear comparisons, concrete steps",
+  },
+  B2B_SAAS: {
+    label: "B2B SaaS", accent: "#6D28D9",
+    layouts: ["2-column comparison", "cheat-sheet grid", "numbered listicle"],
+    banned: "No fabricated metrics or fake testimonials.",
+    style: "clean SaaS dashboard illustration, isometric, professional",
+    palette: "purple, blue, light gray",
+    hint: "productivity, automation, ROI, integrations",
+    formulas: "time saved ('Automate X in 5 min'), tool comparisons, listicles of tools, concrete ROI",
+  },
+};
+
+const state = { niche: "HEALTH_FITNESS", pins: [], busy: false, sortByCtr: true, strategy: "" };
+
+function $(id){ return document.getElementById(id); }
+function getKey(){
+  const v = $("apiKey").value.trim();
+  if (v) { localStorage.setItem("pf_gemini_key", v); return v; }
+  return localStorage.getItem("pf_gemini_key") || "";
+}
+function refreshKey(){
+  const k = getKey();
+  $("keydot").className = "dot" + (k ? " ok" : "");
+  $("keytxt").textContent = k ? "Key set" : "No key yet";
+}
+
+async function fetchWithBackoff(url, options, maxAttempts=5){
+  let attempt = 0;
+  while (true) {
+    attempt++;
+    let res;
+    try { res = await fetch(url, options); }
+    catch (e) { if (attempt >= maxAttempts) throw e; await wait(Math.min(1000*2**(attempt-1),32000)); continue; }
+    if (res.status === 429 || res.status === 503) {
+      if (attempt >= maxAttempts) throw new Error("API busy ("+res.status+").");
+      await wait(Math.min(1000*2**(attempt-1),32000) + Math.random()*400); continue;
+    }
+    if (!res.ok) { const t = await res.text(); throw new Error("API "+res.status+": "+t.slice(0,220)); }
+    return res.json();
+  }
+}
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+async function callText(key, prompt, genConfig){
+  const json = await fetchWithBackoff(API_ROOT+"/"+TEXT_MODEL+":generateContent?key="+key, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ contents:[{role:"user",parts:[{text:prompt}]}], generationConfig: genConfig }),
+  });
+  return (json.candidates && json.candidates[0] && json.candidates[0].content
+    && json.candidates[0].content.parts && json.candidates[0].content.parts[0]
+    && json.candidates[0].content.parts[0].text) || "";
+}
+
+// STEP 0 — the AI plans a CTR strategy adapted to the niche
+async function planStrategy(key, niche, brand, keyword){
+  const n = NICHES[niche];
+  const prompt =
+`You are an expert at maximizing CTR (click-through rate) on Pinterest, a visual search engine with strong purchase intent.
+Niche: ${n.label}. Brand: ${brand||"(none)"}. Topic: ${keyword||n.hint}.
+
+Think step by step and write a CLICK STRATEGY for this campaign as 6-8 ACTIONABLE principles:
+- title formulas that statistically win clicks (numbers, SPECIFIC results/amounts, curiosity gap, power words);
+- which short on-image overlay text stops the scroll on mobile;
+- visual hierarchy and style that grab the eye (use: ${n.formulas});
+- mistakes to avoid (${n.banned});
+- how each pin stays DISTINCT (different angles), never cosmetic variations.
+Output only the bullet list of principles in English, no intro.`;
+  return callText(key, prompt, { temperature: 0.7 });
+}
+
+// STEP 1 — N distinct blueprints applying the strategy (all English)
+async function planPins(key, niche, brand, keyword, count, strategy){
+  const n = NICHES[niche];
+  const prompt =
+`You are a Pinterest content strategist, expert in high CTR and non-generic copywriting. Write everything in ENGLISH.
+Niche: ${n.label}. Brand/URL: ${brand||"(none)"}. Topic: ${keyword||n.hint}.
+Allowed layouts: ${n.layouts.join(", ")}. ${n.banned}
+
+APPLY THIS CLICK STRATEGY you designed:
+"""${strategy}"""
+
+Generate EXACTLY ${count} DISTINCT pin concepts (different angles, hooks, layouts and palettes) engineered to maximize clicks.
+Per concept return:
+- "overlayText": SHORT title (3-7 words) rendered BOLD on the image, action-oriented + specific number/result (e.g. "Save $500 This Month"). Never passive (not "Helpful Tips").
+- "title": pin title (max 100 chars), benefit + action.
+- "description": max 480 chars, with the keyword in the FIRST sentence; end with "#ad #affiliate".
+- "altText": rich DESCRIPTIVE alt text (good alt text can raise outbound clicks by up to 123%).
+- "boardSuggestion": a semantically relevant Pinterest board name (e.g. "Healthy Weight Loss Recipes"), not generic.
+- "ctrScore": number 1-100, your estimate of click potential.
+- "ctrRationale": one short sentence, why this concept earns clicks.
+- "imagePrompt": DETAILED prompt for an image generator: vertical 2:3 pin design, overlayText rendered as BOLD readable sans-serif, at least 30% empty space, a layout from the list, palette ${n.palette}, style ${n.style}${niche==="HEALTH_FITNESS"?"; NO before/after or bodies":""}.`;
+
+  const schema = { type:"ARRAY", items:{ type:"OBJECT", properties:{
+    overlayText:{type:"STRING"}, title:{type:"STRING"}, description:{type:"STRING"}, altText:{type:"STRING"},
+    boardSuggestion:{type:"STRING"}, ctrScore:{type:"NUMBER"}, ctrRationale:{type:"STRING"}, imagePrompt:{type:"STRING"}
+  }, required:["overlayText","title","description","altText","boardSuggestion","ctrScore","ctrRationale","imagePrompt"] } };
+
+  const text = await callText(key, prompt, { responseMimeType:"application/json", responseSchema:schema, temperature:1.0 });
+  let arr = JSON.parse(text || "[]");
+  if (!Array.isArray(arr)) arr = [];
+  return arr.slice(0, count);
+}
+
+// STEP 2 — Nano Banana renders the image; overlayText is the on-image title
+async function makeImage(key, imagePrompt, overlayText, brand){
+  const fullPrompt =
+`${imagePrompt}
+
+MANDATORY on-image overlay text, as the main title: "${overlayText}".
+Strict constraints: VERTICAL 2:3 orientation (like 1000x1500 px); THICK (bold) sans-serif typography, very legible on mobile
+(no script/decorative fonts); at least 30% empty space (airy, breathing room); brand URL "${brand||"brand.com"}" small at the bottom;
+high contrast that stops the scroll; high quality, no watermark.`;
+  const url = API_ROOT+"/"+IMAGE_MODEL+":generateContent?key="+key;
+  const base = { contents:[{role:"user",parts:[{text:fullPrompt}]}] };
+  const variants = [
+    Object.assign({}, base, { generationConfig:{ responseModalities:["IMAGE"], imageConfig:{ aspectRatio:"2:3" } } }),
+    Object.assign({}, base, { generationConfig:{ responseModalities:["IMAGE"] } }),
+    base,
+  ];
+  let lastErr;
+  for (const body of variants) {
+    try {
+      const json = await fetchWithBackoff(url, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
+      const parts = (json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts) || [];
+      const img = parts.find(p => p.inlineData && p.inlineData.data);
+      if (img) return "data:" + (img.inlineData.mimeType||"image/png") + ";base64," + img.inlineData.data;
+      lastErr = new Error("No image in response.");
+    } catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error("Image generation failed.");
+}
+
+// ---- UI ----
+function renderNiches(){
+  const el = $("niches"); el.innerHTML = "";
+  Object.keys(NICHES).forEach(key => {
+    const n = NICHES[key];
+    const b = document.createElement("button");
+    b.className = "niche" + (state.niche===key ? " active":"");
+    b.innerHTML = "<b>"+n.label+"</b><span>"+n.layouts[0]+"</span>";
+    b.onclick = () => { state.niche = key; document.documentElement.style.setProperty("--accent", n.accent); renderNiches(); };
+    el.appendChild(b);
+  });
+}
+
+function ctrColor(s){ return s>=80 ? "#16A34A" : s>=60 ? "#CA8A04" : "#DC2626"; }
+
+function displayPins(){
+  return state.sortByCtr ? state.pins.slice().sort((a,b)=>(b.ctrScore||0)-(a.ctrScore||0)) : state.pins;
+}
+
+function renderActions(){
+  const el = $("actions");
+  if (!state.pins.length) { el.style.display="none"; el.innerHTML=""; return; }
+  el.style.display = "flex";
+  const ready = state.pins.filter(p=>p.image).length;
+  el.innerHTML = "";
+  const sortBtn = document.createElement("button");
+  sortBtn.className = "btn-ghost";
+  sortBtn.textContent = state.sortByCtr ? "↕ Sorted by CTR score" : "↕ Original order";
+  sortBtn.onclick = ()=>{ state.sortByCtr=!state.sortByCtr; renderActions(); renderGrid(); };
+  el.appendChild(sortBtn);
+  if (ready>0){
+    const dl = document.createElement("button");
+    dl.className="btn-ghost"; dl.textContent="⬇ Download all images ("+ready+")";
+    dl.onclick = downloadAll; el.appendChild(dl);
+    const cs = document.createElement("button");
+    cs.className="btn-ghost"; cs.textContent="📄 Export CSV (copy + CTR + board)";
+    cs.onclick = exportCsv; el.appendChild(cs);
+  }
+}
+
+function renderGrid(){
+  const grid = $("grid"); grid.innerHTML = "";
+  $("empty").style.display = state.pins.length ? "none" : "block";
+  displayPins().forEach(pin => {
+    const art = document.createElement("article"); art.className="pin";
+    const acc = NICHES[state.niche].accent;
+    let media;
+    if (pin.image) media = '<img src="'+pin.image+'" alt="'+escapeAttr(pin.altText)+'">';
+    else if (pin.imgError) media = '<div style="color:#dc2626;font-size:11px;text-align:center;padding:10px;">⚠ Image failed</div>';
+    else media = '<div class="spin"></div>';
+    const tagBg = pin.contentClass==="OFFER" ? "#DC2626" : acc;
+    const ctrBadge = (typeof pin.ctrScore==="number") ? '<span class="ctr" style="background:'+ctrColor(pin.ctrScore)+'">CTR '+pin.ctrScore+'</span>' : "";
+    art.innerHTML =
+      '<div class="imgbox">'+media+
+        '<span class="tag" style="background:'+tagBg+'">'+(pin.contentClass==="OFFER"?"Offer":"Value")+'</span>'+
+        ctrBadge+
+        '<div class="ops">'+
+          '<button class="op" title="Regenerate" data-act="regen" data-id="'+pin.id+'">'+(pin.regenerating?"…":"↻")+'</button>'+
+          (pin.image?'<button class="op" title="Download" data-act="dl" data-id="'+pin.id+'">⬇</button>':"")+
+        '</div>'+
+      '</div>'+
+      '<div class="body">'+
+        '<h3>'+escapeHtml(pin.title||"")+'</h3>'+
+        '<p class="desc">'+escapeHtml((pin.description||"").slice(0,120))+'</p>'+
+        (pin.ctrRationale?'<p class="why">CTR: '+escapeHtml(pin.ctrRationale)+'</p>':"")+
+        (pin.boardSuggestion?'<span class="board">Board: '+escapeHtml(pin.boardSuggestion)+'</span>':"")+
+      '</div>';
+    grid.appendChild(art);
+  });
+  grid.querySelectorAll("[data-act]").forEach(btn=>{
+    const id = Number(btn.getAttribute("data-id"));
+    const act = btn.getAttribute("data-act");
+    btn.onclick = () => { if(act==="regen") regenerate(id); else downloadById(id); };
+  });
+}
+
+function escapeHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function escapeAttr(s){ return escapeHtml(s).replace(/"/g,"&quot;"); }
+
+async function handleGenerate(){
+  const key = getKey();
+  if (!key) { showErr("Please paste your Gemini API key first."); return; }
+  state.busy = true; state.pins = []; state.strategy = "";
+  $("genBtn").disabled = true; showErr(""); renderGrid(); renderActions();
+  $("strategyBox").style.display="none";
+  const niche = state.niche;
+  const brand = $("brand").value.trim();
+  const keyword = $("keyword").value.trim();
+  const count = Number($("count").value);
+  try {
+    setPhase("Planning the click strategy (CTR)...");
+    const strategy = await planStrategy(key, niche, brand, keyword);
+    state.strategy = strategy;
+    $("strategyBox").style.display="block"; $("strategyText").textContent = strategy;
+
+    setPhase("Generating pin concepts...");
+    const blueprints = await planPins(key, niche, brand, keyword, count, strategy);
+    if (!blueprints.length) throw new Error("No concepts returned. Try again.");
+    state.pins = blueprints.map((b,i)=>Object.assign({}, b, { id:i, image:null, imgError:null, contentClass:((i+1)%5===0)?"OFFER":"EDUCATIONAL" }));
+    renderGrid(); renderActions();
+
+    setPhase("Rendering images (Nano Banana)...");
+    let done = 0;
+    await Promise.all(state.pins.map(async (b)=>{
+      try {
+        const img = await makeImage(key, b.imagePrompt, b.overlayText, brand);
+        const p = state.pins.find(x=>x.id===b.id); if (p){ p.image = img; }
+      } catch(e){ const p = state.pins.find(x=>x.id===b.id); if (p){ p.imgError = e.message; } }
+      finally { done++; setPhase("Rendering images (Nano Banana)... ("+done+"/"+state.pins.length+")"); renderGrid(); renderActions(); }
+    }));
+    setPhase("");
+  } catch(e){ showErr(e.message||"Unknown error."); setPhase(""); }
+  finally { state.busy = false; $("genBtn").disabled = false; }
+}
+
+async function regenerate(id){
+  const key = getKey(); const p = state.pins.find(x=>x.id===id); if (!p) return;
+  p.image=null; p.imgError=null; p.regenerating=true; renderGrid();
+  try { p.image = await makeImage(key, p.imagePrompt+" (new variation, different composition)", p.overlayText, $("brand").value.trim()); }
+  catch(e){ p.imgError = e.message; }
+  finally { p.regenerating=false; renderGrid(); renderActions(); }
+}
+
+function downloadById(id){ const p = state.pins.find(x=>x.id===id); if (p) downloadPin(p); }
+function downloadPin(pin){ if(!pin.image) return; const a=document.createElement("a"); a.href=pin.image; a.download="pin-"+(pin.id+1)+".png"; a.click(); }
+async function downloadAll(){ for (const p of state.pins.filter(x=>x.image)){ downloadPin(p); await wait(350); } }
+
+function exportCsv(){
+  const esc = s => '"'+String(s==null?"":s).replace(/"/g,'""')+'"';
+  const header = ["nr","type","ctrScore","overlayText","title","description","altText","board","ctrRationale"].join(",");
+  const rows = displayPins().map((p,i)=>[i+1,p.contentClass,(p.ctrScore==null?"":p.ctrScore),esc(p.overlayText),esc(p.title),esc(p.description),esc(p.altText),esc(p.boardSuggestion),esc(p.ctrRationale)].join(","));
+  const blob = new Blob([[header].concat(rows).join("\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "pinforge-pins.csv"; a.click();
+}
+
+function setPhase(t){ $("phase").textContent = t; }
+function showErr(t){ $("errBox").innerHTML = t ? '<div class="err">'+escapeHtml(t)+'</div>' : ""; }
+
+// init
+document.documentElement.style.setProperty("--accent", NICHES[state.niche].accent);
+renderNiches();
+$("count").addEventListener("input", e => $("countLabel").textContent = e.target.value);
+$("apiKey").addEventListener("input", refreshKey);
+$("genBtn").addEventListener("click", handleGenerate);
+$("apiKey").value = localStorage.getItem("pf_gemini_key") || "";
+refreshKey();
+</script>
+</body>
+</html>
