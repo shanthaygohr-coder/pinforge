@@ -12,8 +12,8 @@ import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'crypt
 const AUTH_BASE = 'https://www.pinterest.com/oauth/';
 const TOKEN_URL = 'https://api.pinterest.com/v5/oauth/token';
 
-// Principiul minimului de permisiuni — nimic in plus.
-export const REQUIRED_SCOPES = ['boards:read', 'boards:write', 'pins:read', 'pins:write'] as const;
+// Principiul minimului de permisiuni — plus user_accounts:read pentru /user_account la conectare.
+export const REQUIRED_SCOPES = ['user_accounts:read', 'boards:read', 'boards:write', 'pins:read', 'pins:write'] as const;
 
 export interface TokenSet {
   accessToken: string;
