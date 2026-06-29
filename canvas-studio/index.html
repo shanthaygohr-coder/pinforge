@@ -118,8 +118,24 @@
   <section class="grid" id="grid"></section>
 
   <section class="card" id="scheduleBox" style="display:none; margin-top:24px;">
-    <h2 style="margin:0 0 4px; font-size:18px;">📅 Auto-Schedule</h2>
+    <h2 style="margin:0 0 4px; font-size:18px;">📅 Auto-Schedule & Publish</h2>
     <div class="muted">Boards auto-selected by the AI, times spread for best engagement (80/20 value-vs-offer), link + SEO description attached.</div>
+
+    <div class="row" style="margin-top:16px;">
+      <div>
+        <label>Autopilot backend URL</label>
+        <input type="text" id="autopilotUrl" placeholder="https://your-autopilot.onrender.com" />
+      </div>
+      <div>
+        <label>Pinterest account</label>
+        <select id="accountSelect" style="width:100%; border:1px solid #cbd5e1; border-radius:8px; padding:9px 12px; font-size:14px;"></select>
+      </div>
+      <div style="display:flex; align-items:flex-end; gap:8px;">
+        <button class="btn-ghost" id="connectBtn">🔗 Connect Pinterest</button>
+        <button class="btn-ghost" id="loadAccBtn">↻ Load accounts</button>
+      </div>
+    </div>
+
     <div id="scheduleTable"></div>
     <div class="actions" id="scheduleActions"></div>
     <div class="note" id="publishNote"></div>
@@ -500,11 +516,14 @@ function renderSchedule(){
   wrap.innerHTML = "<table><thead><tr><th>#</th><th>Pin</th><th>Board (auto)</th><th>Publish time</th><th>Link</th></tr></thead><tbody>"+rows+"</tbody></table>";
 
   const acts = $("scheduleActions"); acts.innerHTML = "";
+  const pub = mkBtn("🚀 Publish to Pinterest (Autopilot)", publishToAutopilot);
+  pub.style.background = "var(--accent)"; pub.style.color = "#fff"; pub.style.border = "none";
+  acts.appendChild(pub);
   acts.appendChild(mkBtn("📄 Export schedule CSV", exportScheduleCsv));
   acts.appendChild(mkBtn("⬇ Download scheduled images", async ()=>{ for (const p of state.scheduled.filter(x=>x.image)){ downloadPin(p); await wait(350); } }));
 
   $("publishNote").innerHTML =
-    "ℹ️ This builds the full plan in-app (boards, times, SEO copy, links) and exports it. To actually push these onto your live Pinterest account automatically, the schedule is sent to the PinForge <b>Autopilot</b> backend (Pinterest's API can't be called directly from a browser for security). Use the export now, or connect the Autopilot for hands-off publishing.";
+    "ℹ️ <b>Publish to Pinterest</b> sends these pins to your PinForge <b>Autopilot</b> backend, which auto-picks the board, schedules and posts them at the planned times — no manual pinning. One-time setup: deploy the Autopilot (see render.yaml), create a Pinterest developer app, then click <b>Connect Pinterest</b>. The CSV export works even without the backend.";
 }
 
 function csvEsc(s){ return '"'+String(s==null?"":s).replace(/"/g,'""')+'"'; }
@@ -522,6 +541,44 @@ function exportScheduleCsv(){
   downloadBlob([header].concat(rows).join("\n"), "pinforge-schedule.csv");
 }
 
+// ---- Connect & publish to the Autopilot backend ----
+function autopilotBase(){ return ($("autopilotUrl").value.trim()||"").replace(/\/$/,""); }
+async function connectPinterest(){
+  const base = autopilotBase(); if(!base){ alert("Enter the Autopilot backend URL first."); return; }
+  try {
+    const r = await fetch(base+"/pinterest/auth/url"); const j = await r.json();
+    window.open(j.url, "_blank");
+    alert("Authorize PinForge in the opened tab, then click 'Load accounts'.");
+  } catch(e){ alert("Could not reach Autopilot: "+e.message); }
+}
+async function loadAccounts(){
+  const base = autopilotBase(); if(!base){ alert("Enter the Autopilot backend URL first."); return; }
+  try {
+    const r = await fetch(base+"/pinterest/accounts"); const list = await r.json();
+    const sel = $("accountSelect"); sel.innerHTML="";
+    (list||[]).forEach(a=>{ const o=document.createElement("option"); o.value=a.id; o.textContent="@"+(a.username||a.id); sel.appendChild(o); });
+    if(!list || !list.length){ const o=document.createElement("option"); o.value=""; o.textContent="(no account connected yet)"; sel.appendChild(o); }
+  } catch(e){ alert("Could not load accounts: "+e.message); }
+}
+async function publishToAutopilot(){
+  const base = autopilotBase(); if(!base){ alert("Enter the Autopilot backend URL first."); return; }
+  const accountId = $("accountSelect").value;
+  if(!accountId){ alert("Connect a Pinterest account first (Connect Pinterest, then Load accounts)."); return; }
+  const pins = state.scheduled.filter(p=>p.image).map(p=>({
+    boardName: p.boardSuggestion, title: p.title, description: p.description, altText: p.altText,
+    link: p.link||"", imageBase64: p.image, contentClass: p.contentClass, isCommercial: true,
+    scheduledFor: p.scheduledFor.toISOString(),
+  }));
+  if(!pins.length){ alert("No pins with generated images to publish."); return; }
+  $("publishNote").innerHTML = "⏳ Sending to Autopilot...";
+  try {
+    const r = await fetch(base+"/campaigns/schedule", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ accountId, pins }) });
+    if(!r.ok) throw new Error("Backend "+r.status+": "+(await r.text()).slice(0,200));
+    const j = await r.json();
+    $("publishNote").innerHTML = "✅ Scheduled "+j.count+" pins on @"+(j.account||"")+". The Autopilot auto-picks boards and publishes at the planned times.";
+  } catch(e){ $("publishNote").innerHTML = "⚠️ "+escapeHtml(e.message)+" — is the Autopilot deployed and the account connected?"; }
+}
+
 function setPhase(t){ $("phase").textContent = t; }
 function showErr(t){ $("errBox").innerHTML = t ? '<div class="err">'+escapeHtml(t)+'</div>' : ""; }
 
@@ -532,6 +589,10 @@ $("count").addEventListener("input", e => $("countLabel").textContent = e.target
 $("apiKey").addEventListener("input", refreshKey);
 $("genBtn").addEventListener("click", handleGenerate);
 $("apiKey").value = localStorage.getItem("pf_gemini_key") || "";
+$("connectBtn").addEventListener("click", connectPinterest);
+$("loadAccBtn").addEventListener("click", loadAccounts);
+$("autopilotUrl").value = localStorage.getItem("pf_autopilot") || "";
+$("autopilotUrl").addEventListener("input", e => localStorage.setItem("pf_autopilot", e.target.value.trim()));
 refreshKey();
 </script>
 </body>

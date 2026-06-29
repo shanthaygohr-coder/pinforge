@@ -63,6 +63,12 @@ export class PinterestController {
     return { connected: true, accountId: account.id, username: account.username };
   }
 
+  // Listeaza conturile conectate (pentru dropdown-ul din Studio).
+  @Get('accounts')
+  async accounts() {
+    return this.prisma.pinterestAccount.findMany({ select: { id: true, username: true } });
+  }
+
   // Listeaza boards-urile contului (ai nevoie de boardId la programare).
   @Get(':accountId/boards')
   async boards(@Param('accountId') accountId: string) {

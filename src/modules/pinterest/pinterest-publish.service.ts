@@ -55,18 +55,20 @@ export class PinterestPublishService {
       throw new Error('createImagePin: lipseste imageBase64 sau imageUrl.');
     }
 
+    const body: Record<string, unknown> = {
+      board_id: input.boardId,
+      title: input.title,
+      description: input.description,
+      alt_text: input.altText,
+      media_source,
+    };
+    if (input.link) body.link = input.link; // Pinterest respinge link gol
+
     return this.http.request<{ id: string }>({
       method: 'POST',
       path: '/pins',
       accessToken: input.accessToken,
-      body: {
-        board_id: input.boardId,
-        title: input.title,
-        description: input.description,
-        alt_text: input.altText,
-        link: input.link,
-        media_source,
-      },
+      body,
     });
   }
 
