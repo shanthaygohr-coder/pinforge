@@ -1,0 +1,348 @@
+// ============================================================================
+// PinForge — Schema bazei de date (PostgreSQL + Prisma)
+// ----------------------------------------------------------------------------
+// Proiectata in jurul a doua preocupari centrale ale produsului:
+//   1) BRIDGE PAGES  -> izoleaza linkurile brute de afiliere de Pinterest
+//   2) PUBLISH QUEUE  -> coada optimizata pentru rate-limit (token-bucket / reset)
+// Totul este multi-tenant: fiecare entitate apartine unui User (tenant).
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// TENANT & CONTURI
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  plan          Plan     @default(FREE)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  pinterestAccounts PinterestAccount[]
+  offers            AffiliateOffer[]
+  bridgePages       BridgePage[]
+  pins              Pin[]
+  creatives         Creative[]
+
+  @@map("users")
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+  AGENCY
+}
+
+// Contul Pinterest conectat prin OAuth2. Tokenurile sunt criptate la nivel de aplicatie
+// (vezi pinterest-oauth.service.ts) inainte de persistare.
+model PinterestAccount {
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  pinterestUserId      String   // id-ul intern Pinterest
+  username             String
+  accessTokenEnc       String   // AES-256-GCM ciphertext
+  refreshTokenEnc      String
+  scopes               String[] // boards:read, boards:write, pins:read, pins:write
+  tokenExpiresAt       DateTime
+
+  // Scor de sanatate al contului — folosit de scheduler ca sa nu suprasolicite un cont "fierbinte".
+  domainQualityHint    Int      @default(50) // 0-100, estimare interna
+
+  boards               Board[]
+  pins                 Pin[]
+  rateLimitStates      RateLimitState[]
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@unique([userId, pinterestUserId])
+  @@map("pinterest_accounts")
+}
+
+model Board {
+  id                 String           @id @default(cuid())
+  accountId          String
+  account            PinterestAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  pinterestBoardId   String
+  name               String
+  niche              Niche?
+  pins               Pin[]
+
+  @@unique([accountId, pinterestBoardId])
+  @@map("boards")
+}
+
+// ---------------------------------------------------------------------------
+// OFERTE AFILIERE & NISA
+// ---------------------------------------------------------------------------
+
+enum Niche {
+  HEALTH_FITNESS
+  PERSONAL_FINANCE
+  B2B_SAAS
+}
+
+enum AffiliateNetwork {
+  CLICKBANK
+  DIGISTORE24
+  SHAREASALE
+  IMPACT
+  CUSTOM
+}
+
+model AffiliateOffer {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name          String
+  network       AffiliateNetwork
+  rawAffiliateUrl String         // linkul brut ClickBank/Digistore24 — NU ajunge niciodata direct pe un pin
+  niche         Niche
+  primaryKeyword String          // trebuie sa apara in primul paragraf al descrierii
+  benefitPoints String[]         // bullet points pentru listicles / cheat sheets
+  reviewSnippets String[]        // recenzii/feature-uri pentru nisa Finance/SaaS
+
+  isCommercial  Boolean          @default(true) // declanseaza obligativitatea #ad/#affiliate
+
+  bridgePages   BridgePage[]
+  pins          Pin[]
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@map("affiliate_offers")
+}
+
+// ---------------------------------------------------------------------------
+// BRIDGE PAGES (paginile punte)
+// ---------------------------------------------------------------------------
+
+model BridgePage {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offerId       String
+  offer         AffiliateOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  slug          String         @unique // ex: /go/keto-cheat-sheet-x7g2
+  headline      String
+  bodyHtml      String         // continut de valoare (educational) + CTA catre rawAffiliateUrl
+  ftcDisclosure String         // text obligatoriu de dezvaluire afiliere
+  ctaUrl        String         // = offer.rawAffiliateUrl (redirectionat server-side)
+
+  published     Boolean        @default(false)
+  views         Int            @default(0)
+  clicks        Int            @default(0)
+
+  pins          Pin[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([userId])
+  @@map("bridge_pages")
+}
+
+// ---------------------------------------------------------------------------
+// CREATIVE (imagine/video) + UNICITATE
+// ---------------------------------------------------------------------------
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model Creative {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  mediaType     MediaType @default(IMAGE)
+  storageKey    String    // cheia S3/R2
+  width         Int       // OBLIGATORIU 1000
+  height        Int       // OBLIGATORIU 1500 (raport 2:3)
+
+  // Parametrii de generare — permit reproductibilitate si audit al variatiei parametrice.
+  diffusionSeed BigInt?
+  promptHash    String?
+  layoutVariant String?   // ex: "listicle-3", "cheatsheet-grid", "comparison-2col"
+
+  // Amprenta perceptuala (pHash, 64-bit) pentru QA de unicitate.
+  // Doua creative sunt "prea similare" daca distanta Hamming < pragul nisei.
+  perceptualHash String?  @db.VarChar(16) // hex de 16 caractere = 64 biti
+
+  whiteSpaceRatio Float?  // calculat la randare; trebuie >= 0.30
+  passedQa       Boolean  @default(false)
+
+  pins          Pin[]
+
+  createdAt     DateTime  @default(now())
+
+  @@index([userId, perceptualHash])
+  @@map("creatives")
+}
+
+// ---------------------------------------------------------------------------
+// COPY (titlu/descriere/alt-text generate de NLP)
+// ---------------------------------------------------------------------------
+
+model CopyVariant {
+  id              String  @id @default(cuid())
+  title           String  // benefit + action oriented
+  description     String  @db.VarChar(500) // max 500 caractere, keyword in primul paragraf
+  altText         String
+  keywordInFirstParagraph Boolean @default(false)
+  hasFtcTag       Boolean @default(false) // contine #ad sau #affiliate
+
+  pin             Pin?
+
+  @@map("copy_variants")
+}
+
+// ---------------------------------------------------------------------------
+// PIN + CONTENT MIX (80/20)
+// ---------------------------------------------------------------------------
+
+enum ContentClass {
+  EDUCATIONAL // 80%
+  OFFER       // 20% (comercial -> necesita disclosure + bridge page)
+}
+
+enum PinStatus {
+  DRAFT
+  QUEUED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+}
+
+model Pin {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId     String
+  account       PinterestAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  boardId       String
+  board         Board            @relation(fields: [boardId], references: [id])
+
+  creativeId    String
+  creative      Creative         @relation(fields: [creativeId], references: [id])
+  copyId        String           @unique
+  copy          CopyVariant      @relation(fields: [copyId], references: [id])
+
+  // Pin-urile comerciale NU folosesc rawAffiliateUrl, ci bridgePage.
+  contentClass  ContentClass
+  offerId       String?
+  offer         AffiliateOffer?  @relation(fields: [offerId], references: [id])
+  bridgePageId  String?
+  bridgePage    BridgePage?      @relation(fields: [bridgePageId], references: [id])
+
+  destinationUrl String          // bridge page URL (offer) sau articol (educational)
+
+  status        PinStatus        @default(DRAFT)
+  pinterestPinId String?         // populat dupa publicare
+
+  publishJob    PublishJob?
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([userId, contentClass])
+  @@map("pins")
+}
+
+// ---------------------------------------------------------------------------
+// PUBLISH QUEUE (optimizata pentru rate-limit)
+// ---------------------------------------------------------------------------
+
+model PublishJob {
+  id            String    @id @default(cuid())
+  pinId         String    @unique
+  pin           Pin       @relation(fields: [pinId], references: [id], onDelete: Cascade)
+
+  scheduledFor  DateTime  // momentul tinta, calculat de scheduler-ul 80/20
+  nextRunAt     DateTime  // urmatoarea incercare efectiva (poate fi amanat de rate-limit)
+  attempts      Int       @default(0)
+  maxAttempts   Int       @default(6)
+  backoffSeconds Int      @default(0) // ultimul backoff aplicat (cap 32s)
+
+  // Pentru video: id-ul containerului media in curs de procesare la Pinterest.
+  mediaUploadId String?
+  mediaStatus   String?   // succeeded | processing | failed (din polling)
+
+  lastError     String?
+  state         JobState  @default(PENDING)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([state, nextRunAt])
+  @@map("publish_jobs")
+}
+
+enum JobState {
+  PENDING
+  WAITING_MEDIA   // polling pentru video
+  RATE_LIMITED    // asteapta x-ratelimit-reset
+  DONE
+  FAILED
+}
+
+// Starea rate-limit per cont + endpoint, citita din headerele Pinterest.
+// Permite scheduler-ului sa nu trimita cereri inainte de reset.
+model RateLimitState {
+  id            String           @id @default(cuid())
+  accountId     String
+  account       PinterestAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  endpoint      String           // ex: "POST /pins"
+  remaining     Int              @default(0)
+  resetAt       DateTime         // calculat din x-ratelimit-reset
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([accountId, endpoint])
+  @@map("rate_limit_states")
+}
+
+// ---------------------------------------------------------------------------
+// REGULI DE NISA & AUDIT CONFORMITATE
+// ---------------------------------------------------------------------------
+
+model NicheRuleSet {
+  id                  String  @id @default(cuid())
+  niche               Niche   @unique
+  allowedLayouts      String[] // ex: ["listicle", "infographic"]
+  bannedVisualPatterns String[] // ex: ["before_after"]
+  requiredHashtags    String[] // ex: ["#ad", "#affiliate"]
+  maxDescriptionChars Int      @default(500)
+  pHashMinDistance    Int      @default(12) // pragul de unicitate (Hamming)
+
+  @@map("niche_rule_sets")
+}
+
+// Jurnal imuabil pentru conformitate (FTC, politici de nisa, rate-limit).
+model ComplianceAudit {
+  id          String   @id @default(cuid())
+  userId      String
+  pinId       String?
+  ruleType    String   // FTC_DISCLOSURE | NICHE_POLICY | DEDUP_QA | RATE_LIMIT
+  passed      Boolean
+  detail      String
+  createdAt   DateTime @default(now())
+
+  @@index([userId, ruleType])
+  @@map("compliance_audits")
+}

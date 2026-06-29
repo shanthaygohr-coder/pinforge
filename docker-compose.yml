@@ -1,0 +1,33 @@
+# Infrastructura locala pentru PinForge: PostgreSQL + Redis.
+# Porneste cu:  docker compose up -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pinforge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pinforge
+      POSTGRES_PASSWORD: pinforge
+      POSTGRES_DB: pinforge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pinforge_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pinforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: pinforge-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - pinforge_redis:/data
+
+volumes:
+  pinforge_pg:
+  pinforge_redis:
